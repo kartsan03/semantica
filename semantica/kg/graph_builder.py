@@ -175,6 +175,11 @@ class GraphBuilder:
 
     def _process_item(self, item: Any, all_entities: List[Any], all_relationships: List[Any], **options):
         """Helper to process a single item and add to entities or relationships list."""
+        from ..ingest.file_ingestor import FileObject
+
+        if isinstance(item, FileObject):
+            item = item.text
+
         if isinstance(item, str):
             # Treat string as text for extraction
             self._extract_from_text(item, all_entities, all_relationships, **options)
@@ -342,7 +347,9 @@ class GraphBuilder:
                     found_something = True
         else:
             # Unknown type
-            pass
+            self.logger.warning(
+                "Skipping unsupported source type: %s", type(item).__name__
+            )
 
     def _get_extractor(
         self, kind: str, extractor_cls, method: Union[str, List[str]]

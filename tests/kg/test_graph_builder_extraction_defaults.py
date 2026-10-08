@@ -9,6 +9,7 @@ key for any raw-text build.
 import unittest
 from unittest.mock import patch
 
+from semantica.ingest.file_ingestor import FileObject
 from semantica.kg.graph_builder import GraphBuilder
 
 
@@ -256,6 +257,41 @@ class TestGraphBuilderDefaultsRunOffline(unittest.TestCase):
 
         provider.assert_not_called()
         self.assertIsInstance(entities, list)
+
+
+class TestGraphBuilderFileObjectSources(unittest.TestCase):
+    def setUp(self):
+        self.builder = GraphBuilder(merge_entities=False, resolve_conflicts=False)
+
+    def test_file_object_extracts_same_graph_as_text(self):
+        text = "Apple Inc. was founded by Steve Jobs in 1976."
+        source = FileObject(
+            path="apple.txt",
+            name="apple.txt",
+            size=len(text),
+            file_type="txt",
+            content=text.encode("utf-8"),
+        )
+
+        expected = self.builder.build([text], ner_method="pattern")
+        actual = self.builder.build([source], ner_method="pattern")
+
+        self.assertTrue(expected["entities"])
+        self.assertTrue(expected["relationships"])
+        self.assertEqual(actual["entities"], expected["entities"])
+        self.assertEqual(actual["relationships"], expected["relationships"])
+
+    def test_unknown_source_warns_and_build_continues(self):
+        class UnsupportedSource:
+            pass
+
+        entity = {"id": "known", "name": "Known"}
+        with self.assertLogs(self.builder.logger, level="WARNING") as logs:
+            graph = self.builder.build([UnsupportedSource(), entity])
+
+        self.assertTrue(any("UnsupportedSource" in message for message in logs.output))
+        self.assertEqual(graph["entities"], [entity])
+        self.assertEqual(graph["relationships"], [])
 
 
 if __name__ == "__main__":
