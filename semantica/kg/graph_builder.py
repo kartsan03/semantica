@@ -178,7 +178,19 @@ class GraphBuilder:
         from ..ingest.file_ingestor import FileObject
 
         if isinstance(item, FileObject):
-            item = item.text
+            content = item.content or ""
+            if isinstance(content, bytes):
+                # Binary formats (images, PDF, Office) need a parser, not raw decoding.
+                try:
+                    content = content.decode("utf-8")
+                except UnicodeDecodeError:
+                    self.logger.warning(
+                        "Skipping FileObject %r: %s content is not UTF-8 text",
+                        item.name,
+                        item.file_type,
+                    )
+                    return
+            item = content
 
         if isinstance(item, str):
             # Treat string as text for extraction

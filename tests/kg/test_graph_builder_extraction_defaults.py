@@ -281,6 +281,28 @@ class TestGraphBuilderFileObjectSources(unittest.TestCase):
         self.assertEqual(actual["entities"], expected["entities"])
         self.assertEqual(actual["relationships"], expected["relationships"])
 
+    def test_binary_file_object_warns_and_is_skipped(self):
+        text = b"Apple Inc. was founded by Steve Jobs in 1976."
+        for name, content in (
+            ("pixel.png", b"\x89PNG\r\n\x1a\n" + text),
+            ("paper.pdf", b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n" + text),
+        ):
+            with self.subTest(name=name):
+                source = FileObject(
+                    path=name,
+                    name=name,
+                    size=len(content),
+                    file_type=name.rsplit(".", 1)[1],
+                    content=content,
+                )
+                entity = {"id": "known", "name": "Known"}
+                with self.assertLogs(self.builder.logger, level="WARNING") as logs:
+                    graph = self.builder.build([source, entity], ner_method="pattern")
+
+                self.assertTrue(any(name in message for message in logs.output))
+                self.assertEqual(graph["entities"], [entity])
+                self.assertEqual(graph["relationships"], [])
+
     def test_unknown_source_warns_and_build_continues(self):
         class UnsupportedSource:
             pass
