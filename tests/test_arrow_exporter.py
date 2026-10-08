@@ -420,6 +420,28 @@ class TestArrowExporter(unittest.TestCase):
                     self.assertEqual(row["type"], "WORKS_AT")
                     self.assertEqual(record, original)
 
+    def test_export_preserves_numeric_endpoint_aliases(self):
+        exporter = ArrowExporter()
+        for source, target in (
+            ("source_id", "target_id"),
+            ("source", "target"),
+            ("start_node_id", "end_node_id"),
+            ("start_id", "end_id"),
+        ):
+            with self.subTest(source=source):
+                record = {"id": 7, source: 0, target: 2, "type": "KNOWS"}
+                original = dict(record)
+                paths = exporter.export(
+                    {"edges": [record]}, Path(self.test_dir) / "numeric.arrow"
+                )
+                with ipc.open_file(str(paths[0])) as reader:
+                    row = reader.read_all().to_pylist()[0]
+                self.assertEqual(row["id"], "7")
+                self.assertEqual(row["source_id"], "0")
+                self.assertEqual(row["target_id"], "2")
+                self.assertEqual(row["type"], "KNOWS")
+                self.assertEqual(record, original)
+
     def test_export_endpoint_detection_preserves_entity_offsets(self):
         record = {"id": "e1", "text": "Alice", "type": "PERSON", "start": 0, "end": 5}
         paths = ArrowExporter().export([record], Path(self.test_dir) / "entity.arrow")

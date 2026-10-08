@@ -689,7 +689,11 @@ class ArrowExporter:
                 )
 
         if schema == RELATIONSHIP_SCHEMA:
-            data = canonical_endpoints(data)
+            data = [dict(record) for record in canonical_endpoints(data)]
+            for record in data:
+                for key in ("id", "source_id", "target_id"):
+                    if record.get(key) is not None:
+                        record[key] = str(record[key])
 
         self.logger.debug(
             f"Writing Arrow IPC file: {len(data)} row(s), "
