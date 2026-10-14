@@ -186,7 +186,21 @@ class LLMProvenanceMixin:
         """
         start_time = time.time()
         activity_started_at_time = datetime.utcnow().isoformat()
-        result = invoke()
+        try:
+            result = invoke()
+        except Exception as e:
+            self._track_llm_call(
+                call_id=f"{call_id_prefix}_{uuid.uuid4().hex[:8]}",
+                prompt=prompt,
+                response=None,
+                generation_mode=kind,
+                error=type(e).__name__,
+                latency_seconds=time.time() - start_time,
+                activity_started_at_time=activity_started_at_time,
+                activity_ended_at_time=datetime.utcnow().isoformat(),
+                **metadata,
+            )
+            raise
         elapsed = time.time() - start_time
         activity_ended_at_time = datetime.utcnow().isoformat()
 
@@ -254,7 +268,19 @@ class GroqLLMWithProvenance(LLMProvenanceMixin):
         """
         start_time = time.time()
         activity_started_at_time = datetime.utcnow().isoformat()
-        response = self._llm.generate(prompt, **kwargs)
+        try:
+            response = self._llm.generate(prompt, **kwargs)
+        except Exception as e:
+            self._track_llm_call(
+                call_id=f"groq_call_{uuid.uuid4().hex[:8]}",
+                prompt=prompt,
+                response=None,
+                error=type(e).__name__,
+                latency_seconds=time.time() - start_time,
+                activity_started_at_time=activity_started_at_time,
+                activity_ended_at_time=datetime.utcnow().isoformat(),
+            )
+            raise
         elapsed = time.time() - start_time
         activity_ended_at_time = datetime.utcnow().isoformat()
 
@@ -366,7 +392,19 @@ class OpenAILLMWithProvenance(LLMProvenanceMixin):
         """
         start_time = time.time()
         activity_started_at_time = datetime.utcnow().isoformat()
-        response = self._llm.generate(prompt, **kwargs)
+        try:
+            response = self._llm.generate(prompt, **kwargs)
+        except Exception as e:
+            self._track_llm_call(
+                call_id=f"openai_call_{uuid.uuid4().hex[:8]}",
+                prompt=prompt,
+                response=None,
+                error=type(e).__name__,
+                latency_seconds=time.time() - start_time,
+                activity_started_at_time=activity_started_at_time,
+                activity_ended_at_time=datetime.utcnow().isoformat(),
+            )
+            raise
         elapsed = time.time() - start_time
         activity_ended_at_time = datetime.utcnow().isoformat()
 
@@ -477,7 +515,19 @@ class HuggingFaceLLMWithProvenance(LLMProvenanceMixin):
         """
         start_time = time.time()
         activity_started_at_time = datetime.utcnow().isoformat()
-        response = self._llm.generate(prompt, **kwargs)
+        try:
+            response = self._llm.generate(prompt, **kwargs)
+        except Exception as e:
+            self._track_llm_call(
+                call_id=f"hf_call_{uuid.uuid4().hex[:8]}",
+                prompt=prompt,
+                response=None,
+                error=type(e).__name__,
+                latency_seconds=time.time() - start_time,
+                activity_started_at_time=activity_started_at_time,
+                activity_ended_at_time=datetime.utcnow().isoformat(),
+            )
+            raise
         elapsed = time.time() - start_time
         activity_ended_at_time = datetime.utcnow().isoformat()
 
@@ -567,7 +617,19 @@ class LiteLLMWithProvenance(LLMProvenanceMixin):
         """
         start_time = time.time()
         activity_started_at_time = datetime.utcnow().isoformat()
-        response = self._llm.generate(prompt, **kwargs)
+        try:
+            response = self._llm.generate(prompt, **kwargs)
+        except Exception as e:
+            self._track_llm_call(
+                call_id=f"lite_call_{uuid.uuid4().hex[:8]}",
+                prompt=prompt,
+                response=None,
+                error=type(e).__name__,
+                latency_seconds=time.time() - start_time,
+                activity_started_at_time=activity_started_at_time,
+                activity_ended_at_time=datetime.utcnow().isoformat(),
+            )
+            raise
         elapsed = time.time() - start_time
         activity_ended_at_time = datetime.utcnow().isoformat()
 
