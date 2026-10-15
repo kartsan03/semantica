@@ -14,21 +14,38 @@ class _Answer(BaseModel):
     answer: str
 
 
-@pytest.mark.parametrize(
-    "wrapper_name, target",
-    [
-        ("GroqLLMWithProvenance", "semantica.llms.groq.Groq"),
-        ("OpenAILLMWithProvenance", "semantica.llms.openai.OpenAI"),
-        ("HuggingFaceLLMWithProvenance", "semantica.llms.huggingface.HuggingFaceLLM"),
-        ("LiteLLMWithProvenance", "semantica.llms.litellm.LiteLLM"),
-    ],
-)
-@pytest.mark.parametrize(
-    "method", ["generate", "generate_structured", "generate_typed"]
-)
+# The generate() options each wrapper records on a successful call, which a
+# failed call must record too.
+WRAPPERS = [
+    (
+        "GroqLLMWithProvenance",
+        "semantica.llms.groq.Groq",
+        {"temperature": 0.2, "max_tokens": 7, "top_p": 0.9},
+    ),
+    (
+        "OpenAILLMWithProvenance",
+        "semantica.llms.openai.OpenAI",
+        {"temperature": 0.2, "max_tokens": 7},
+    ),
+    (
+        "HuggingFaceLLMWithProvenance",
+        "semantica.llms.huggingface.HuggingFaceLLM",
+        {"temperature": 0.2},
+    ),
+    (
+        "LiteLLMWithProvenance",
+        "semantica.llms.litellm.LiteLLM",
+        {"provider": "openai"},
+    ),
+]
+METHODS = ["generate", "generate_structured", "generate_typed"]
+
+
+@pytest.mark.parametrize("wrapper_name, target, sampling", WRAPPERS)
+@pytest.mark.parametrize("method", METHODS)
 @pytest.mark.parametrize("enabled", [True, False])
 def test_failed_call_is_tracked_and_reraised(
-    monkeypatch, wrapper_name, target, method, enabled
+    monkeypatch, wrapper_name, target, sampling, method, enabled
 ):
     llm = Mock(model="test-model")
     error = ValueError("upstream error details")
@@ -38,9 +55,11 @@ def test_failed_call_is_tracked_and_reraised(
     wrapper = getattr(wrappers, wrapper_name)(
         provenance=enabled, agent_id="test-agent", is_automated=False
     )
-    options = (
-        {"schema": _Answer, "max_retries": 2} if method == "generate_typed" else {}
-    )
+    options = {
+        "generate": sampling,
+        "generate_structured": {},
+        "generate_typed": {"schema": _Answer, "max_retries": 2},
+    }[method]
 
     with pytest.raises(ValueError) as caught:
         getattr(wrapper, method)("question", **options)
@@ -67,16 +86,41 @@ def test_failed_call_is_tracked_and_reraised(
     assert metadata["prompt_preview"] == "question"
     assert metadata["response_preview"] is None
     assert metadata["latency_seconds"] >= 0
-    if method != "generate":
+    if method == "generate":
+        for name, value in sampling.items():
+            assert metadata[name] == value
+    else:
         assert metadata["generation_mode"] == method.removeprefix("generate_")
     if method == "generate_typed":
         assert metadata["max_retries"] == 2
     assert wrapper._prov_manager.verify_chain()["valid"] is True
 
 
-@pytest.mark.parametrize(
-    "method", ["generate", "generate_structured", "generate_typed"]
-)
+@pytest.mark.parametrize("wrapper_name, target, sampling", WRAPPERS)
+@pytest.mark.parametrize("method", METHODS)
+def test_audit_write_failure_does_not_replace_the_llm_error(
+    monkeypatch, wrapper_name, target, sampling, method
+):
+    llm = Mock(model="test-model")
+    error = ValueError("upstream error details")
+    getattr(llm, method).side_effect = error
+    monkeypatch.setattr(target, Mock(return_value=llm))
+    wrapper = getattr(wrappers, wrapper_name)(provenance=True)
+    wrapper._prov_manager.track_entity = Mock(side_effect=OSError("disk full"))
+    options = {
+        "generate": sampling,
+        "generate_structured": {},
+        "generate_typed": {"schema": _Answer, "max_retries": 2},
+    }[method]
+
+    with pytest.raises(ValueError) as caught:
+        getattr(wrapper, method)("question", **options)
+
+    assert caught.value is error
+    assert wrapper._prov_manager.track_entity.call_count == 1
+
+
+@pytest.mark.parametrize("method", METHODS)
 def test_litellm_client_failure_reaches_audit_log(monkeypatch, method):
     import semantica.llms.litellm as litellm_module
 
