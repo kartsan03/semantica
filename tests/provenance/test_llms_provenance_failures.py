@@ -30,7 +30,7 @@ WRAPPERS = [
     (
         "HuggingFaceLLMWithProvenance",
         "semantica.llms.huggingface.HuggingFaceLLM",
-        {"temperature": 0.2},
+        {"max_length": 64, "temperature": 0.2},
     ),
     (
         "LiteLLMWithProvenance",

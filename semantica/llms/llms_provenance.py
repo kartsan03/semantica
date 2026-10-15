@@ -569,6 +569,7 @@ class HuggingFaceLLMWithProvenance(LLMProvenanceMixin):
                 e,
                 start_time,
                 activity_started_at_time,
+                max_length=kwargs.get("max_length"),
                 temperature=kwargs.get("temperature"),
             )
             raise
