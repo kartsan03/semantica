@@ -114,6 +114,23 @@ class TestLinkDecisionsPersistence(unittest.TestCase):
             set(self.graph._edge_index), {edge.edge_id for edge in self.graph.edges}
         )
 
+    def test_failed_save_keeps_edges_added_by_the_mutation_callback(self):
+        def add_another_link(operation, *args):
+            if operation == "ADD_EDGE":
+                self.graph.mutation_callback = None
+                self.graph.add_causal_relationship(
+                    self.ids[2], self.ids[1], "INFLUENCED"
+                )
+
+        self.graph.mutation_callback = add_another_link
+        with patch.object(self.graph, "save_to_file", side_effect=OSError("disk full")):
+            result = self._link()
+        self.assertIn("Mutation rolled back", result.get("error", ""))
+        self.assertEqual(self._chain(), ["Unrelated"])
+        self.assertEqual(
+            set(self.graph._edge_index), {edge.edge_id for edge in self.graph.edges}
+        )
+
     def test_unsafe_startup_file_is_not_overwritten(self):
         original = b"not a graph\n"
         self.path.write_bytes(original)

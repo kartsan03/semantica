@@ -311,7 +311,8 @@ def _tool_link_decisions(args: dict) -> dict:
         try:
             edge_count = len(graph.edges)
             added = graph.add_causal_relationship(source, target, relationship)
-            new_edges = list(graph.edges)[edge_count:]
+            # The new edge lands at edge_count; a mutation callback can append more.
+            new_edges = graph.edges[edge_count : edge_count + 1]
         except ValueError as exc:
             return {"error": str(exc)}
         except Exception as exc:
