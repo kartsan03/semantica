@@ -27,7 +27,7 @@ from ..utils.exceptions import ProcessingError, ValidationError
 from ..utils.helpers import _require_mapping, ensure_directory, normalize_graph_payload
 from ..utils.logging import get_logger
 from ..utils.progress_tracker import get_progress_tracker
-from .endpoint_names import SOURCE_ENDPOINT_NAMES, TARGET_ENDPOINT_NAMES
+from .endpoint_names import SOURCE_ENDPOINT_NAMES, TARGET_ENDPOINT_NAMES, is_unset_id
 
 
 class LPGExporter:
@@ -238,7 +238,7 @@ class LPGExporter:
                 (
                     node[key]
                     for key in ("id", "entity_id")
-                    if node.get(key) not in (None, "")
+                    if not is_unset_id(node.get(key))
                 ),
                 f"node_{idx}",
             )
@@ -297,7 +297,7 @@ class LPGExporter:
                 (
                     edge[key]
                     for key in SOURCE_ENDPOINT_NAMES
-                    if edge.get(key) not in (None, "")
+                    if not is_unset_id(edge.get(key))
                 ),
                 None,
             )
@@ -305,7 +305,7 @@ class LPGExporter:
                 (
                     edge[key]
                     for key in TARGET_ENDPOINT_NAMES
-                    if edge.get(key) not in (None, "")
+                    if not is_unset_id(edge.get(key))
                 ),
                 None,
             )
