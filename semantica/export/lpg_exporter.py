@@ -234,7 +234,14 @@ class LPGExporter:
 
         lines = []
         for idx, node in enumerate(nodes):
-            node_id = node.get("id") or node.get("entity_id", f"node_{idx}")
+            node_id = next(
+                (
+                    node[key]
+                    for key in ("id", "entity_id")
+                    if node.get(key) not in (None, "")
+                ),
+                f"node_{idx}",
+            )
             node_type = node.get("type") or node.get("entity_type", "Entity")
             label = node.get("label") or node.get("name") or node.get("text", "")
 

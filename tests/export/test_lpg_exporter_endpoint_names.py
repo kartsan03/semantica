@@ -76,10 +76,13 @@ def test_export_retains_zero_endpoint_ids(tmp_path, source, target):
         path,
     )
 
+    text = path.read_text(encoding="utf-8")
     assert (
         f"MATCH (a {{id: '{source}'}}), (b {{id: '{target}'}}) "
         "CREATE (a)-[r:RELATED_TO]->(b);"
-    ) in path.read_text(encoding="utf-8")
+    ) in text
+    # A node with id 0 keeps its id instead of a generated node_<n> placeholder.
+    assert "node_" not in text
 
 
 @pytest.mark.parametrize("empty", [None, ""])
