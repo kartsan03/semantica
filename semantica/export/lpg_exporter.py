@@ -27,6 +27,7 @@ from ..utils.exceptions import ProcessingError, ValidationError
 from ..utils.helpers import _require_mapping, ensure_directory, normalize_graph_payload
 from ..utils.logging import get_logger
 from ..utils.progress_tracker import get_progress_tracker
+from .endpoint_names import SOURCE_ENDPOINT_NAMES, TARGET_ENDPOINT_NAMES
 
 
 class LPGExporter:
@@ -285,11 +286,25 @@ class LPGExporter:
 
         lines = []
         for idx, edge in enumerate(edges):
-            source_id = edge.get("source") or edge.get("source_id")
-            target_id = edge.get("target") or edge.get("target_id")
+            source_id = next(
+                (
+                    edge[key]
+                    for key in SOURCE_ENDPOINT_NAMES
+                    if edge.get(key) not in (None, "")
+                ),
+                None,
+            )
+            target_id = next(
+                (
+                    edge[key]
+                    for key in TARGET_ENDPOINT_NAMES
+                    if edge.get(key) not in (None, "")
+                ),
+                None,
+            )
             rel_type = edge.get("type") or edge.get("relationship_type", "RELATED_TO")
 
-            if not source_id or not target_id:
+            if source_id is None or target_id is None:
                 continue
 
             # Escape special characters
@@ -301,10 +316,8 @@ class LPGExporter:
             properties = {}
             for key, value in edge.items():
                 if key not in [
-                    "source",
-                    "source_id",
-                    "target",
-                    "target_id",
+                    *SOURCE_ENDPOINT_NAMES,
+                    *TARGET_ENDPOINT_NAMES,
                     "type",
                     "relationship_type",
                 ]:
