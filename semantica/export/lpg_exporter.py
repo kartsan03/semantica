@@ -347,7 +347,7 @@ class LPGExporter:
 
     def _escape_cypher_string(self, value: str) -> str:
         """Escape special characters in Cypher strings."""
-        return value.replace("'", "\\'").replace("\\", "\\\\")
+        return value.replace("\\", "\\\\").replace("'", "\\'")
 
     def _format_cypher_value(self, value: Any) -> str:
         """Format a value for Cypher query."""

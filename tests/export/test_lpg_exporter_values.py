@@ -36,3 +36,21 @@ def test_export_formats_node_values_and_endpoint_ids(tmp_path, batch_size):
         "CREATE (a)-[r:RELATED_TO {id: 'r1'}]->(b);",
         "MATCH (a {id: 7}), (b {id: '7'}) CREATE (a)-[r:RELATED_TO {id: 2}]->(b);",
     ]
+
+
+def test_export_escapes_apostrophes_and_backslashes(tmp_path):
+    path = tmp_path / "graph.cypher"
+    LPGExporter(include_indexes=False).export(
+        {
+            "nodes": [{"id": "o'brien", "name": "O'Brien"}, {"id": "acme"}],
+            "edges": [{"source": "o'brien", "target": "acme", "note": "a\\b"}],
+        },
+        path,
+    )
+
+    text = path.read_text(encoding="utf-8")
+    assert "CREATE (n0:Entity {id: 'o\\'brien', name: 'O\\'Brien'});" in text
+    assert (
+        "MATCH (a {id: 'o\\'brien'}), (b {id: 'acme'}) "
+        "CREATE (a)-[r:RELATED_TO {note: 'a\\\\b'}]->(b);"
+    ) in text
