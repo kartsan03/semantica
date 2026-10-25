@@ -103,8 +103,13 @@ class TestTimeZoneNormalizer(unittest.TestCase):
                 )
 
     def test_convert_to_utc_invalid_timezone(self):
-        with self.assertRaisesRegex(ValidationError, "../etc"):
-            self.tz_normalizer.convert_to_utc(datetime(2026, 3, 1, 7, 30), "../etc")
+        for source_timezone in ("../etc", 123):
+            with self.subTest(source_timezone=source_timezone):
+                with self.assertRaises(ValidationError) as error:
+                    self.tz_normalizer.convert_to_utc(
+                        datetime(2026, 3, 1, 7, 30), source_timezone
+                    )
+                self.assertIn(repr(source_timezone), str(error.exception))
 
     def test_convert_to_utc_without_source_timezone(self):
         dt = datetime(2026, 3, 1, 7, 30)

@@ -332,7 +332,7 @@ class TimeZoneNormalizer:
             if source_timezone:
                 try:
                     source_tz = ZoneInfo(source_timezone)
-                except (ZoneInfoNotFoundError, ValueError) as e:
+                except (ZoneInfoNotFoundError, ValueError, TypeError) as e:
                     raise ValidationError(
                         f"Invalid source timezone: {source_timezone!r}"
                     ) from e
