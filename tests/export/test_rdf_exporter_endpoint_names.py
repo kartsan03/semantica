@@ -162,3 +162,36 @@ def test_validation_treats_empty_endpoints_as_unset(empty):
     )
     assert not result["valid"]
     assert len(result["errors"]) == 2
+
+
+@pytest.mark.parametrize("fmt", FORMATS)
+def test_entity_zero_and_its_edge_share_one_node(tmp_path, fmt):
+    graph = {
+        "entities": [{"id": 0, "text": "alice"}, {"id": 1, "text": "acme"}],
+        "relationships": [{**BACKEND_EDGE, "start_node_id": 0, "end_node_id": 1}],
+    }
+    path = tmp_path / fmt
+    RDFExporter().export(graph, path, format=fmt)
+    body = path.read_text(encoding="utf-8")
+
+    if fmt == "jsonld":
+        nodes = json.loads(body)["@graph"]
+        entity_ids = [n["@id"] for n in nodes if n["@type"] == "semantica:Entity"]
+        [edge] = [n for n in nodes if n["@type"] == "semantica:Relationship"]
+        assert edge["semantica:source"]["@id"] in entity_ids
+    elif fmt == "rdfxml":
+        rdf = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}"
+        typed = {
+            d.attrib[rdf + "about"]
+            for d in ElementTree.fromstring(body)
+            if d.find(rdf + "type") is not None
+        }
+        assert SEMANTICA_NS + "0" in typed
+    else:
+        rdflib = pytest.importorskip("rdflib")
+        parsed = rdflib.Graph().parse(
+            data=body, format="nt" if fmt == "ntriples" else "turtle"
+        )
+        zero = rdflib.URIRef(SEMANTICA_NS + "0")
+        assert (zero, rdflib.RDF.type, None) in parsed
+        assert (zero, rdflib.URIRef(SEMANTICA_NS + "WORKS_AT"), None) in parsed

@@ -103,3 +103,10 @@ def test_file_export_keeps_backend_endpoints(tmp_path, method):
     assert edge["@id"] == "r1"
     assert edge["semantica:source"] == {"@id": "alice"}
     assert edge["semantica:target"] == {"@id": "acme"}
+
+
+def test_entity_zero_keeps_the_id_its_edges_use():
+    exporter = JSONExporter()
+    entity = exporter._entity_to_jsonld({"id": 0, "text": "alice"})
+    edge = exporter._relationship_to_jsonld({"start_node_id": 0, "end_node_id": 1}, 0)
+    assert entity["@id"] == edge["semantica:source"]["@id"] == 0

@@ -856,7 +856,7 @@ class RDFSerializer:
         entities = rdf_data.get("entities", [])
         for entity in entities:
             entity_id = entity.get("id")
-            if not entity_id:
+            if is_unset_id(entity_id):
                 entity_text = entity.get("text", "")
                 entity_id = mint_entity_iri(entity_text)
 
@@ -1118,7 +1118,7 @@ class RDFSerializer:
         for entity in entities:
             # Generate entity ID if not provided
             entity_id = entity.get("id")
-            if not entity_id:
+            if is_unset_id(entity_id):
                 entity_text = entity.get("text", "")
                 entity_id = mint_entity_iri(entity_text)
 
@@ -1265,7 +1265,9 @@ class RDFSerializer:
             # f"semantica:entity/{text}" interpolated the raw text into an IRI:
             # any entity whose text contained a space produced an invalid IRI
             # and was dropped in full by a JSON-LD parser, silently.
-            entity_id = entity.get("id") or mint_entity_iri(entity.get("text", ""))
+            entity_id = entity.get("id")
+            if is_unset_id(entity_id):
+                entity_id = mint_entity_iri(entity.get("text", ""))
 
             # The caller's type label is data, not a class we define: minting
             # it into @type expanded it through @vocab into ns#ORG and
@@ -1372,7 +1374,7 @@ class RDFSerializer:
         for entity in entities:
             # Generate entity ID if not provided
             entity_id = entity.get("id")
-            if not entity_id:
+            if is_unset_id(entity_id):
                 entity_text = entity.get("text", "")
                 entity_id = mint_entity_iri(entity_text)
 

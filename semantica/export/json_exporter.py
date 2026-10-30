@@ -678,7 +678,9 @@ class JSONExporter:
         # text into f"semantica:entity/{text}" produced an invalid IRI for any
         # text containing a space, and a JSON-LD parser dropped the whole node.
         entity_text = entity.get("text") or entity.get("label", "unknown")
-        entity_id = entity.get("id") or mint_entity_iri(entity_text)
+        entity_id = entity.get("id")
+        if is_unset_id(entity_id):
+            entity_id = mint_entity_iri(entity_text)
 
         # The caller's type label is data, not a class we define: minting it
         # into @type expanded it through @vocab into ns#ORG and friends, terms
