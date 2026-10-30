@@ -31,6 +31,12 @@ from ..utils.exceptions import ProcessingError, ValidationError
 from ..utils.helpers import ensure_directory, hash_data, utc_now_iso, write_json_file
 from ..utils.logging import get_logger
 from ..utils.progress_tracker import get_progress_tracker
+from .endpoint_names import (
+    SOURCE_ENDPOINT_NAMES,
+    TARGET_ENDPOINT_NAMES,
+    first_set_id,
+    is_unset_id,
+)
 from .rdf_exporter import SEMANTICA_NS, mint_entity_iri, mint_relationship_iri
 
 
@@ -722,16 +728,18 @@ class JSONExporter:
         # Generate @id if not provided, from the same mint the RDF serializers
         # use, including the list index that separates two relationships
         # sharing a pair of endpoints (#1101).
-        source_id = rel.get("source_id") or rel.get("source", "")
-        target_id = rel.get("target_id") or rel.get("target", "")
+        source_id = first_set_id(rel, SOURCE_ENDPOINT_NAMES)
+        source_id = "" if source_id is None else source_id
+        target_id = first_set_id(rel, TARGET_ENDPOINT_NAMES)
+        target_id = "" if target_id is None else target_id
         rel_id = rel.get("id") or mint_relationship_iri(index, source_id, target_id)
 
         jsonld = {
             "@id": rel_id,
             "@type": "semantica:Relationship",
             "semantica:type": rel.get("type", "related_to"),
-            "semantica:source": {"@id": rel.get("source_id") or rel.get("source")},
-            "semantica:target": {"@id": rel.get("target_id") or rel.get("target")},
+            "semantica:source": {"@id": None if is_unset_id(source_id) else source_id},
+            "semantica:target": {"@id": None if is_unset_id(target_id) else target_id},
             "semantica:confidence": rel.get("confidence", 1.0),
         }
 
